@@ -1,26 +1,47 @@
-from crewai import Agent, Task, Crew, Process
+import json
+from crewai import Crew, Process
 
-lead_analyzer = Agent(
-    role="Analista de Inteligência de Leads",
-    goal="Analisar o perfil do lead, detectar intenção e pontos de dor usando dados históricos",
-    tools=[rag_search_tool],
-    llm=ChatOpenAI(model="gpt-4o")
-)
+from agents.lead_analyzer   import lead_analyzer,   build_analyze_task
+from agents.sales_strategist import sales_strategist, build_strategy_task
+from agents.email_copywriter import email_copywriter, build_email_task
+from agents.followup_manager import followup_manager, build_followup_task
 
-sales_strategist = Agent(
-    role="Estrategista de Vendas B2B",
-    goal="Definir a melhor abordagem, canal, timing e ganchos de valor para este lead",
-    tools=[rag_search_tool, win_rate_tool],
-)
 
-email_copywriter = Agent(
-    role="Redator de E-mails",
-    goal="Escrever um e-mail hiper-personalizado que converte",
-    tools=[template_tool],
-)
+def run_crew(lead_input: dict) -> dict:
+    t1 = build_analyze_task(lead_input)
+    t2 = build_strategy_task(lead_input)
+    t3 = build_email_task(lead_input)
+    t4 = build_followup_task(lead_input)
 
-followup_manager = Agent(
-    role="Orquestrador de Follow-up",
-    goal="Criar sequência de follow-up automatizada e sincronizar com CRM",
-    tools=[crm_tool],
-)
+    crew = Crew(
+        agents=[lead_analyzer, sales_strategist, email_copywriter, followup_manager],
+        tasks=[t1, t2, t3, t4],
+        process=Process.sequential,
+        verbose=True,
+        memory=True,
+        embedder={
+            "provider": "openai",
+            "config": {"model": "text-embedding-3-small"},
+        },
+    )
+
+    raw_result = crew.kickoff()
+
+    try:
+        analysis  = json.loads(t1.output.raw)
+        strategy  = json.loads(t2.output.raw)
+        email     = json.loads(t3.output.raw)
+        followups = json.loads(t4.output.raw)
+    except (json.JSONDecodeError, AttributeError):
+        analysis  = t1.output.raw if t1.output else {}
+        strategy  = t2.output.raw if t2.output else {}
+        email     = t3.output.raw if t3.output else {}
+        followups = t4.output.raw if t4.output else {}
+
+    return {
+        "lead_input" : lead_input,
+        "analysis"   : analysis,
+        "strategy"   : strategy,
+        "email"      : email,
+        "followups"  : followups,
+    }
