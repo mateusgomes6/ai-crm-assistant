@@ -6,7 +6,7 @@ from langchain_openai import ChatOpenAI
 llm = ChatOpenAI(model="gpt-4o", temperature=0.2)
 
 lead_analyzer = Agent(
-    role="Lead Intelligence Analyst",
+    role="Analista de Inteligência de Leads",
     goal=(
         "Analisar profundamente perfis de leads B2B. Identificar intenção de compra, "
         "pontos de dor, stack tecnológico, maturidade da empresa e sinais de orçamento. "
