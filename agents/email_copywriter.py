@@ -1,8 +1,6 @@
-from crewai import Agent
-from tools.rag_tool import RAGLeadTool
-from langchain_openai import ChatOpenAI
+from crewai import Agent, LLM
 
-llm = ChatOpenAI(model="gpt-4o", temperature=0.7)
+llm = LLM(model="groq/llama-3.3-70b-versatile", temperature=0.7)
 
 email_copywriter = Agent(
     role="Copywriter de E-mails B2B",
@@ -18,10 +16,10 @@ email_copywriter = Agent(
         "Você nunca começa um e-mail com 'Espero que este e-mail te encontre bem'. "
         "Você escreve como um colega perspicaz, não como um vendedor."
     ),
-    tools=[RAGLeadTool()],
+    tools=[],
     llm=llm,
     verbose=True,
-    memory=True,
+    memory=False,
 )
 
 def build_email_task(lead_input: dict):

@@ -1,8 +1,6 @@
-from crewai import Agent
-from tools.crm_tool import CRMTool
-from langchain_openai import ChatOpenAI
+from crewai import Agent, LLM
 
-llm = ChatOpenAI(model="gpt-4o", temperature=0.2)
+llm = LLM(model="groq/llama-3.3-70b-versatile", temperature=0.2)
 
 followup_manager = Agent(
     role="Gerente de Sequência de Follow-up",
@@ -17,10 +15,10 @@ followup_manager = Agent(
         "arco natural de conversa, não um disparo de spam. Cada mensagem escala valor "
         "e urgência sem ser insistente. Você sempre sincroniza com o CRM para que nada passe despercebido."
     ),
-    tools=[CRMTool()],
+    tools=[],
     llm=llm,
     verbose=True,
-    memory=True,
+    memory=False,
 )
 
 def build_followup_task(lead_input: dict):

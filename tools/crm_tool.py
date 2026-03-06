@@ -3,7 +3,7 @@ import json
 import uuid
 from datetime import datetime, timedelta
 from typing import Type
-from crewai_tools import BaseTool
+from crewai.tools import BaseTool
 from pydantic import BaseModel, Field
 import requests
 

@@ -18,11 +18,7 @@ def run_crew(lead_input: dict) -> dict:
         tasks=[t1, t2, t3, t4],
         process=Process.sequential,
         verbose=True,
-        memory=True,
-        embedder={
-            "provider": "openai",
-            "config": {"model": "text-embedding-3-small"},
-        },
+        memory=False,
     )
 
     raw_result = crew.kickoff()

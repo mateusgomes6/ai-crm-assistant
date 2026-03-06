@@ -1,9 +1,6 @@
-from crewai import Agent
-from tools.rag_tool import RAGLeadTool
-from tools.enrichment_tool import EnrichmentTool
-from langchain_openai import ChatOpenAI
+from crewai import Agent, LLM
 
-llm = ChatOpenAI(model="gpt-4o", temperature=0.2)
+llm = LLM(model="groq/llama-3.3-70b-versatile", temperature=0.2)
 
 lead_analyzer = Agent(
     role="Analista de Inteligência de Leads",
@@ -18,10 +15,10 @@ lead_analyzer = Agent(
         "sinais comportamentais e padrões históricos alimentados por RAG para construir perfis "
         "de leads extremamente precisos. Você nunca adivinha — você raciocina a partir de evidências."
     ),
-    tools=[RAGLeadTool(), EnrichmentTool()],
+    tools=[],
     llm=llm,
     verbose=True,
-    memory=True,
+    memory=False,
 )
 
 

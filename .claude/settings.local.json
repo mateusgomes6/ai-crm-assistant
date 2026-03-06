@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Program Files/**)",
+      "Read(//c/Program Files \\(x86\\)/**)",
+      "Bash(where createdb)",
+      "Bash(ls \"C:/Program Files/PostgreSQL/\"*/bin/createdb.exe)",
+      "Bash(\"C:/Program Files/PostgreSQL/18/bin/createdb.exe\" -U postgres crm_db)",
+      "Bash(PGPASSWORD=postgres \"C:/Program Files/PostgreSQL/18/bin/createdb.exe\" -U postgres crm_db)",
+      "Bash(PGPASSWORD=password \"C:/Program Files/PostgreSQL/18/bin/createdb.exe\" -U postgres crm_db)",
+      "Bash(PGPASSWORD=password \"C:/Program Files/PostgreSQL/18/bin/psql.exe\" -U postgres -d crm_db -c \"CREATE EXTENSION IF NOT EXISTS vector;\")",
+      "Bash(DATABASE_URL=\"postgresql://postgres:password@localhost:5432/crm_db\" python -c \"from database import create_schema; create_schema\\(\\); print\\(''Schema criado com sucesso!''\\)\")",
+      "Bash(pip list)",
+      "Bash(python -c \"import crewai_tools; print\\(dir\\(crewai_tools\\)\\)\")",
+      "Bash(python -c \"from crewai.tools import BaseTool; print\\(''OK''\\)\")",
+      "Bash(python -c \"from dotenv import load_dotenv; load_dotenv\\(\\); import os; key=os.environ.get\\(''GOOGLE_API_KEY'',''''\\); print\\(f''Key length: {len\\(key\\)}''\\); print\\(f''Starts with: {key[:8]}...''\\) if key else print\\(''GOOGLE_API_KEY not found''\\)\")",
+      "Bash(python -c \"from dotenv import load_dotenv; load_dotenv\\(\\); import os; key=os.environ.get\\(''GOOGLE_API_KEY'',''''\\); print\\(f''Key found: {key[:12]}...''\\)\")",
+      "Bash(python -c \":*)",
+      "Bash(pip install langchain-groq sentence-transformers)",
+      "Bash(pip install litellm)",
+      "Bash(pip install streamlit)"
+    ]
+  }
+}

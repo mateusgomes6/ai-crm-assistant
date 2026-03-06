@@ -1,8 +1,6 @@
-from crewai import Agent
-from tools.rag_tool import RAGLeadTool
-from langchain_openai import ChatOpenAI
+from crewai import Agent, LLM
 
-llm = ChatOpenAI(model="gpt-4o", temperature=0.3)
+llm = LLM(model="groq/llama-3.3-70b-versatile", temperature=0.3)
 
 sales_strategist = Agent(
     role="Estrategista de Vendas B2B",
@@ -17,10 +15,10 @@ sales_strategist = Agent(
         "um VP de Vendas de um e-commerce. Você personaliza cada estratégia para a psicologia do comprador, "
         "seus incentivos, seus medos e o que sucesso significa para eles."
     ),
-    tools=[RAGLeadTool()],
+    tools=[],
     llm=llm,
     verbose=True,
-    memory=True,
+    memory=False,
 )
 
 def build_strategy_task(lead_input: dict):

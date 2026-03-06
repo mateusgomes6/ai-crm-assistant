@@ -7,10 +7,16 @@ from contextlib import contextmanager
 
 import psycopg2
 from psycopg2.extras import RealDictCursor, execute_values
-from openai import OpenAI
+from sentence_transformers import SentenceTransformer
+
+_st_model = None
+def _get_st_model():
+    global _st_model
+    if _st_model is None:
+        _st_model = SentenceTransformer("all-MiniLM-L6-v2")
+    return _st_model
 
 logger = logging.getLogger(__name__)
-openai_client = OpenAI()
 
 @contextmanager
 def get_conn():
@@ -26,8 +32,6 @@ def get_conn():
         conn.close()
 
 SCHEMA_SQL = """
--- Enable pgvector
-CREATE EXTENSION IF NOT EXISTS vector;
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- ── Main leads table ──────────────────────────────────────────────────────────
@@ -61,8 +65,8 @@ CREATE TABLE IF NOT EXISTS leads (
     deal_value_usd    INTEGER,
     days_to_close     INTEGER,
 
-    -- RAG embedding (text-embedding-3-small = 1536 dims)
-    embedding         vector(1536),
+    -- RAG embedding stored as JSON array (pgvector not required)
+    embedding         JSONB,
 
     -- Processing state
     status            TEXT        NOT NULL DEFAULT 'pending'
@@ -76,8 +80,6 @@ CREATE INDEX IF NOT EXISTS idx_leads_email     ON leads (email);
 CREATE INDEX IF NOT EXISTS idx_leads_segment   ON leads (segment);
 CREATE INDEX IF NOT EXISTS idx_leads_status    ON leads (status);
 CREATE INDEX IF NOT EXISTS idx_leads_outcome   ON leads (outcome);
-CREATE INDEX IF NOT EXISTS idx_leads_embedding ON leads USING ivfflat (embedding vector_cosine_ops)
-    WITH (lists = 100);
 
 -- ── Pipeline run audit log ────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS pipeline_runs (
@@ -125,11 +127,8 @@ def build_embedding_text(lead_input: dict, analysis: dict) -> str:
     )
 
 def get_embedding(text: str) -> list[float]:
-    response = openai_client.embeddings.create(
-        model="text-embedding-3-small",
-        input=text,
-    )
-    return response.data[0].embedding
+    model = _get_st_model()
+    return model.encode(text).tolist()
 
 def save_lead_result(
     lead_input: dict,
@@ -195,7 +194,7 @@ def save_lead_result(
                 intent,
                 approach,
                 channel,
-                embedding,
+                json.dumps(embedding),
             ))
             returned = cur.fetchone()
             actual_id = returned[0] if returned else lead_id
@@ -287,8 +286,17 @@ def update_outcome(email: str, outcome: str, deal_value_usd: int = None, days_to
                 WHERE email = %s
             """, (outcome, deal_value_usd, days_to_close, email))
 
+def _cosine_similarity(a: list[float], b: list[float]) -> float:
+    dot = sum(x * y for x, y in zip(a, b))
+    norm_a = sum(x * x for x in a) ** 0.5
+    norm_b = sum(x * x for x in b) ** 0.5
+    if norm_a == 0 or norm_b == 0:
+        return 0.0
+    return dot / (norm_a * norm_b)
+
+
 def search_similar_leads(embedding: list[float], top_k: int = 5) -> list[dict]:
-    """Semantic search — called internally by RAGLeadTool."""
+    """Semantic search — cosine similarity computed in Python."""
     with get_conn() as conn:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             cur.execute("""
@@ -298,13 +306,23 @@ def search_similar_leads(embedding: list[float], top_k: int = 5) -> list[dict]:
                     strategy->'approach'     AS strategy_used,
                     approach, primary_channel AS channel,
                     outcome, deal_value_usd, days_to_close,
-                    1 - (embedding <=> %s::vector) AS similarity
+                    embedding
                 FROM leads
                 WHERE embedding IS NOT NULL AND status = 'processed'
-                ORDER BY embedding <=> %s::vector
-                LIMIT %s
-            """, (embedding, embedding, top_k))
-            return [dict(r) for r in cur.fetchall()]
+            """)
+            rows = cur.fetchall()
+
+    results = []
+    for row in rows:
+        row = dict(row)
+        stored_emb = row.pop("embedding")
+        if isinstance(stored_emb, str):
+            stored_emb = json.loads(stored_emb)
+        row["similarity"] = _cosine_similarity(embedding, stored_emb)
+        results.append(row)
+
+    results.sort(key=lambda r: r["similarity"], reverse=True)
+    return results[:top_k]
 
 if __name__ == "__main__":
     create_schema()
