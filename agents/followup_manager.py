@@ -1,4 +1,5 @@
 from crewai import Agent, LLM
+from pydantic import BaseModel, Field
 
 llm = LLM(model="groq/llama-3.3-70b-versatile", temperature=0.2, num_retries=3)
 
@@ -20,6 +21,22 @@ followup_manager = Agent(
     verbose=True,
     memory=False,
 )
+
+class FollowupStep(BaseModel):
+    step: int = Field(description="Número da etapa")
+    day: int = Field(description="Dia do touchpoint")
+    channel: str = Field(description="Canal de contato")
+    action: str = Field(description="Ação a ser realizada")
+    message_hint: str = Field(description="Dica de mensagem para o SDR")
+    priority: str = Field(description="Prioridade: alta, média ou baixa")
+    crm_task_id: str = Field(default="", description="ID da tarefa no CRM")
+
+
+class FollowupOutput(BaseModel):
+    sequence: list[FollowupStep] = Field(description="Sequência de follow-up")
+    total_touchpoints: int = Field(description="Total de touchpoints")
+    estimated_reply_probability: str = Field(description="Probabilidade estimada de resposta")
+
 
 def build_followup_task(lead_input: dict):
     from crewai import Task
@@ -62,4 +79,5 @@ def build_followup_task(lead_input: dict):
         """,
         agent=followup_manager,
         expected_output="JSON com sequência de follow-up e IDs das tarefas no CRM",
+        output_json=FollowupOutput,
     )

@@ -1,4 +1,5 @@
 from crewai import Agent, LLM
+from pydantic import BaseModel, Field
 
 llm = LLM(model="groq/llama-3.3-70b-versatile", temperature=0.7, num_retries=3)
 
@@ -21,6 +22,16 @@ email_copywriter = Agent(
     verbose=True,
     memory=False,
 )
+
+class EmailOutput(BaseModel):
+    subject: str = Field(description="Assunto do e-mail")
+    subject_variant_a: str = Field(description="Variante A do assunto")
+    subject_variant_b: str = Field(description="Variante B do assunto")
+    body: str = Field(description="Corpo do e-mail")
+    word_count: int = Field(description="Contagem de palavras do corpo")
+    personalization_hooks_used: list[str] = Field(description="Hooks de personalização usados")
+    cta: str = Field(description="Call to action")
+
 
 def build_email_task(lead_input: dict):
     from crewai import Task
@@ -56,4 +67,5 @@ def build_email_task(lead_input: dict):
         """,
         agent=email_copywriter,
         expected_output="JSON com assunto do e-mail, corpo e variantes A/B",
+        output_json=EmailOutput,
     )

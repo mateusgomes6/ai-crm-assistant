@@ -1,4 +1,5 @@
 from crewai import Agent, LLM
+from pydantic import BaseModel, Field
 
 llm = LLM(model="groq/llama-3.3-70b-versatile", temperature=0.3, num_retries=3)
 
@@ -20,6 +21,30 @@ sales_strategist = Agent(
     verbose=True,
     memory=False,
 )
+
+class ValueHook(BaseModel):
+    pain: str = Field(description="Dor específica")
+    gain: str = Field(description="Ganho específico")
+    metric: str = Field(description="Métrica de sucesso")
+
+
+class Objection(BaseModel):
+    objection: str = Field(description="Objeção provável")
+    handler: str = Field(description="Tratamento da objeção")
+
+
+class StrategyOutput(BaseModel):
+    approach: str = Field(description="Tipo de abordagem")
+    primary_channel: str = Field(description="Canal primário")
+    secondary_channel: str = Field(description="Canal secundário")
+    best_day: str = Field(description="Melhor dia da semana")
+    best_time: str = Field(description="Melhor horário")
+    tone: str = Field(description="Tom da comunicação")
+    value_hooks: list[ValueHook] = Field(description="Top 3 ganchos de valor")
+    objections: list[Objection] = Field(description="Top 2 objeções e tratamentos")
+    cta: str = Field(description="Call to action recomendado")
+    strategy_confidence: int = Field(description="Confiança na estratégia de 0 a 100")
+
 
 def build_strategy_task(lead_input: dict):
     from crewai import Task
@@ -66,4 +91,5 @@ def build_strategy_task(lead_input: dict):
         """,
         agent=sales_strategist,
         expected_output="Objeto JSON com estratégia de vendas completa",
+        output_json=StrategyOutput,
     )
