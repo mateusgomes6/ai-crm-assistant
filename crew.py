@@ -19,6 +19,7 @@ def run_crew(lead_input: dict) -> dict:
         process=Process.sequential,
         verbose=True,
         memory=False,
+        max_rpm=10,
     )
 
     raw_result = crew.kickoff()
